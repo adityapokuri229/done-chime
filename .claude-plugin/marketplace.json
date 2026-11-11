@@ -1,0 +1,5 @@
+{
+  "name": "done-chime",
+  "owner": { "name": "Aditya Pokuri", "url": "https://github.com/adityapokuri229" },
+  "plugins": [{ "name": "done-chime", "source": "./", "description": "Plays a short chime when Claude finishes answering" }]
+}

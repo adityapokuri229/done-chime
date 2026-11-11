@@ -1,0 +1,9 @@
+{
+  "name": "done-chime",
+  "version": "0.2.0",
+  "description": "Plays a short chime when Claude finishes answering, always or only after long turns",
+  "author": { "name": "Aditya Pokuri", "url": "https://github.com/adityapokuri229" },
+  "repository": "https://github.com/adityapokuri229/done-chime",
+  "license": "MIT",
+  "keywords": ["mod", "sound", "notification", "chime"]
+}

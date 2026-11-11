@@ -1,27 +1,32 @@
 import type { Register } from 'claude-code'
 
 // Each platform's own built-in sound, tried in order until one plays: no file ships with the mod.
-const PLAYERS: string[][] = [
-  ['afplay', '/System/Library/Sounds/Glass.aiff'], // macOS
-  ['paplay', '/usr/share/sounds/freedesktop/stereo/complete.oga'], // Linux (PulseAudio / PipeWire)
-  ['pw-play', '/usr/share/sounds/freedesktop/stereo/complete.oga'], // Linux (PipeWire)
-  ['canberra-gtk-play', '-i', 'complete'], // Linux (desktop sound theme)
-]
-const WINDOWS = ['powershell', '-NoProfile', '-Command', "(New-Object Media.SoundPlayer 'C:\\Windows\\Media\\chimes.wav').PlaySync()"]
+const LINUX_SOUND = '/usr/share/sounds/freedesktop/stereo/complete.oga'
+const PLAYERS: Record<'mac' | 'windows' | 'linux', string[][]> = {
+  mac: [['afplay', '/System/Library/Sounds/Glass.aiff']],
+  windows: [['powershell', '-NoProfile', '-Command', "(New-Object Media.SoundPlayer 'C:\\Windows\\Media\\chimes.wav').PlaySync()"]],
+  linux: [['paplay', LINUX_SOUND], ['pw-play', LINUX_SOUND], ['canberra-gtk-play', '-i', 'complete']],
+}
 
+const platformOf = async ($: any): Promise<'mac' | 'windows' | 'linux'> => {
+  if ((await $.env.get('OS').catch(() => undefined)) === 'Windows_NT') return 'windows'
+  const home = (await $.env.get('HOME').catch(() => undefined)) ?? ''
+  return home.startsWith('/Users/') ? 'mac' : 'linux'
+}
+
+// Tries this platform's players in order until one plays.
 const chime = async ($: any): Promise<void> => {
-  const isWindows = (await $.env.get('OS').catch(() => undefined)) === 'Windows_NT'
-  for (const argv of isWindows ? [WINDOWS] : PLAYERS) {
+  for (const argv of PLAYERS[await platformOf($)]) {
     const r = await $.process.run(argv, { timeoutMs: 10_000 }).catch(() => null)
     if (r && r.exitCode === 0) return
   }
 }
+
 const LONG_MS = 20_000
 const getLongMs = async ($: any): Promise<number> => {
   const v = await $.store.get('longMs').catch(() => undefined)
   return typeof v === 'number' && v > 0 ? v : LONG_MS
 }
-
 const getMode = async ($: any): Promise<'always' | 'long'> =>
   (await $.store.get('mode').catch(() => undefined)) === 'long' ? 'long' : 'always'
 const isOn = async ($: any): Promise<boolean> =>
@@ -31,7 +36,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'done-chime',
-      description: 'Chime when Claude finishes: on, off, always, long, custom <seconds>',
+      description: 'Chime when Claude finishes',
+      argumentHint: 'on | off | always | long | custom <seconds>',
     })
     return next(e)
   })
